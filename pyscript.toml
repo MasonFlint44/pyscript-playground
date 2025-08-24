@@ -1,1 +1,4 @@
 name = "PyScript Playground"
+
+[files]
+"./pyscript_html.py" = "./pyscript_html.py"
