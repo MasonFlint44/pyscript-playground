@@ -89,4 +89,4 @@ with App(stylesheet=styles) as app:
             with Paragraph(): Bold("B"); Italic("I"); Underline("U"); Strikethrough("S")
     with Footer():
         with Paragraph(): text("© 2025 MySite")
-    mount(app, "#app")
+    mount(app)
