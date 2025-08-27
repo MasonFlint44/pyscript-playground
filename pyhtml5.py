@@ -730,3 +730,26 @@ def html_string(node: Node) -> str:
 
 def css_string(sheet: Stylesheet) -> str:
     return sheet.to_css()
+
+# ---- Exports & typing aids -------------------------------------------------------
+
+# Everything we export (explicit names + all generated element classes)
+__all__ = [
+    # Core nodes
+    "Node","Text","Comment","Fragment","Element",
+    # CSS builder
+    "CSSStyleRule","AtRule","KeyframesRule","PageRule","FontFaceRule","Stylesheet",
+    # Helpers
+    "html_string","css_string","rebuild_html_classes",
+    "element_class_for_tag","tag_for_element_class_name","create","custom",
+] + list(TAG_TO_CLASSNAME.values())
+
+def __getattr__(name: str) -> Any:
+    """
+    Help static analyzers/editors resolve dynamically generated element classes.
+    Ex: from pyhtml5 import Division  -> returns the generated class at runtime.
+    """
+    cls = CLASSNAME_TO_CLASS.get(name)
+    if cls is not None:
+        return cls
+    raise AttributeError(f"module 'pyhtml5' has no attribute {name!r}")
