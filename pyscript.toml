@@ -2,3 +2,4 @@ name = "PyScript Playground"
 
 [files]
 "./pyhtml5.py" = ""
+"./sitewinder.py" = ""
