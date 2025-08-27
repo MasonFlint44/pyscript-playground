@@ -200,7 +200,7 @@ class Component:
       - on_update(self)
       - on_destroy(self)
 
-    Helpers you can use inside template():
+    Helpers inside template():
       - self.on(element, 'click', handler)
       - self.bind_value(input_element, signal, event='input'|'change', prop='value'|'checked')
       - self.portal(ChildComponentClass, **props)
@@ -226,6 +226,10 @@ class Component:
 
         self._style_el = None
         self._use_scoped_styles = True
+
+        # Stable id registry for objects (e.g., Signals) across renders
+        self._stable_ids: Dict[int, str] = {}
+        self._stable_ids_counter: int = 0
 
         self.on_init()
 
@@ -304,7 +308,9 @@ class Component:
         event: str = "input",
         prop: str = "value",
     ) -> Element:
-        elem_id = self._ensure_elem_marker(element)
+        # Use a STABLE id based on the Signal object so we can restore focus after re-renders
+        stable_id = self._stable_id_for(signal, prefix="sv")
+        elem_id = self._ensure_elem_marker(element, preferred_id=stable_id)
         self._value_bindings.append(
             _ValueBinding(elem_id, signal, prop=prop, event=event)
         )
@@ -328,6 +334,17 @@ class Component:
     def use(self, child_component_cls: type, **props) -> Element:
         return self.portal(child_component_cls, **props)
 
+    # ----- stable id helpers ------------------------------------------------------
+    def _stable_id_for(self, obj: Any, *, prefix: str = "k") -> str:
+        key = id(obj)
+        sid = self._stable_ids.get(key)
+        if sid is not None:
+            return sid
+        self._stable_ids_counter += 1
+        sid = f"{prefix}-{self._stable_ids_counter}"
+        self._stable_ids[key] = sid
+        return sid
+
     # ----- focus capture/restore --------------------------------------------------
     def _is_within_root(self, el) -> bool:
         try:
@@ -342,7 +359,7 @@ class Component:
     def _capture_focus_state(self) -> Optional[Dict[str, Any]]:
         """
         Capture active element id and selection (for text controls) so we can restore after re-render.
-        Only works for elements that carry a data-sw-id (created by on()/bind_value()).
+        Only works for elements that carry a data-sw-id (from on()/bind_value()).
         """
         if not HAS_JS or not _is_dom_node(self._root_js):
             return None
@@ -360,11 +377,9 @@ class Component:
         if not elem_id:
             return None
 
-        # Try to capture caret/selection for inputs/textareas
         sel_start = sel_end = None
         sel_dir = None
         try:
-            # Some elements (checkboxes, buttons) don't support these
             sel_start = getattr(active, "selectionStart", None)
             sel_end = getattr(active, "selectionEnd", None)
             sel_dir = getattr(active, "selectionDirection", None)
@@ -395,7 +410,6 @@ class Component:
         except Exception:
             pass
 
-        # If we have selection info, restore it (text inputs / textarea)
         sel_start = state.get("sel_start")
         sel_end = state.get("sel_end")
         sel_dir = state.get("sel_dir") or "none"
@@ -404,18 +418,19 @@ class Component:
                 if hasattr(el, "setSelectionRange"):
                     el.setSelectionRange(sel_start, sel_end, sel_dir)
                 else:
-                    # Fallback assignment if supported
                     setattr(el, "selectionStart", sel_start)
                     setattr(el, "selectionEnd", sel_end)
             except Exception:
                 pass
 
     # ----- internal: rendering + binding -----------------------------------------
-    def _ensure_elem_marker(self, element: Element) -> str:
+    def _ensure_elem_marker(
+        self, element: Element, preferred_id: Optional[str] = None
+    ) -> str:
         data_attr = element.attrs.get("data-sw-id")
         if data_attr:
             return data_attr
-        new_id = next(_event_id_iter)
+        new_id = preferred_id or next(_event_id_iter)
         element.set_attr(**{"data-sw-id": new_id})
         return new_id
 
@@ -582,8 +597,12 @@ class Component:
             if not _is_dom_node(el):
                 continue
 
+            # Only set if different to avoid caret jumps during typing
             try:
-                setattr(el, vb.prop, vb.signal.get())
+                current = getattr(el, vb.prop)
+                new_val = vb.signal.get()
+                if current != new_val:
+                    setattr(el, vb.prop, new_val)
             except Exception:
                 pass
 
@@ -600,7 +619,8 @@ class Component:
             def _update_dom(_old, _new, _el=el, _vb=vb):
                 if _is_dom_node(_el):
                     try:
-                        setattr(_el, _vb.prop, _new)
+                        if getattr(_el, _vb.prop) != _new:
+                            setattr(_el, _vb.prop, _new)
                     except Exception:
                         pass
 
