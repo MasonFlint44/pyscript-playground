@@ -30,20 +30,25 @@ class Card(Component):
     def styles(self):
         css = Stylesheet()
         with css:
+            # Light defaults
             css.rule(
                 ".card",
                 padding="16px",
                 border="1px solid #e5e7eb",
                 border_radius="14px",
-                background="var(--card-bg)",
+                background="#ffffff",
                 box_shadow="0 1px 2px rgba(0,0,0,.06)",
+                color="#0f172a",
             )
+            css.rule(".title", font_weight="600", margin_bottom="8px", color="#0b1220")
+            # Dark overrides
             css.rule(
-                ".title",
-                font_weight="600",
-                margin_bottom="8px",
-                color="var(--text-strong)",
+                "html[data-theme='dark'] .card",
+                background="#111827",
+                border="1px solid #334155",
+                color="#e5e7eb",
             )
+            css.rule("html[data-theme='dark'] .card .title", color="#f3f4f6")
         return css
 
     def template(self):
@@ -54,8 +59,7 @@ class Card(Component):
             if title:
                 Span(title).classes("title")
             if callable(body):
-                # Render body content; context manager will append.
-                body()
+                body()  # context manager appends
         return root
 
 
@@ -73,15 +77,16 @@ class Home(Component):
                 gap="16px",
                 grid_template_columns="repeat(3, minmax(0, 1fr))",
             )
-            css.rule(".lead", color="var(--text-muted)")
+            css.rule(".lead", color="#334155")
             with css.media("(max-width: 900px)"):
                 css.rule(".hero", grid_template_columns="1fr")
+            css.rule("html[data-theme='dark'] .home .lead", color="#94a3b8")
         return css
 
     def template(self):
         root = Division().classes("home")
         with root:
-            Heading1("💨 SiteWinder")
+            Heading1("SiteWinder")
             Paragraph(
                 "Angular-like components in pure Python with PyScript + pyhtml5."
             ).classes("lead")
@@ -117,36 +122,50 @@ class Counter(Component):
         with css:
             css.rule(".wrap", padding="24px")
             css.rule(".row", display="flex", gap="8px", align_items="center")
+            # Inputs & buttons (light)
             css.rule(
                 ".btn",
                 width="38px",
                 height="38px",
                 border_radius="12px",
-                border="1px solid var(--line)",
-                background="var(--btn-bg)",
+                border="1px solid #e5e7eb",
+                background="#ffffff",
                 cursor="pointer",
                 font_size="18px",
                 line_height="36px",
                 text_align="center",
-                color="var(--text)",
+                color="#0f172a",
+            )
+            css.rule(
+                "input[type=number]",
+                border="1px solid #e5e7eb",
+                background="#ffffff",
+                color="#0f172a",
+                border_radius="10px",
+                padding="8px 10px",
+                width="82px",
             )
             css.rule(
                 ".pill",
                 display="inline-block",
                 padding="4px 10px",
                 border_radius="999px",
-                background="var(--accent)",
+                background="#7c3aed",
                 color="white",
                 font_size="12px",
             )
+            # Dark overrides
             css.rule(
-                "input[type=number]",
-                border="1px solid var(--line)",
-                background="var(--field-bg)",
-                color="var(--text)",
-                border_radius="10px",
-                padding="8px 10px",
-                width="82px",
+                "html[data-theme='dark'] .btn",
+                border="1px solid #334155",
+                background="#0b1220",
+                color="#e5e7eb",
+            )
+            css.rule(
+                "html[data-theme='dark'] input[type=number]",
+                border="1px solid #334155",
+                background="#0b1220",
+                color="#e5e7eb",
             )
         return css
 
@@ -176,7 +195,7 @@ class Counter(Component):
                 step_in = Input(type="number", min="1", value=str(self.step()))
                 self.bind_value(
                     step_in, self.step, event="input", prop="value"
-                )  # coerce → int via sitewinder
+                )  # coerces to int
             HorizontalRule().style(margin="12px 0")
             self._controls("Counter A:", self.count_a)
             self._controls("Counter B:", self.count_b)
@@ -196,11 +215,12 @@ class FormDemo(Component):
                 ".wrap", padding="24px", display="grid", gap="14px", max_width="560px"
             )
             css.rule(".row", display="grid", gap="6px")
+            # Light
             css.rule(
                 "input, select",
-                border="1px solid var(--line)",
-                background="var(--field-bg)",
-                color="var(--text)",
+                border="1px solid #e5e7eb",
+                background="#ffffff",
+                color="#0f172a",
                 padding="10px",
                 border_radius="10px",
                 font_size="14px",
@@ -208,9 +228,23 @@ class FormDemo(Component):
             css.rule(
                 ".preview",
                 padding="12px",
-                background="var(--card-bg)",
+                background="#f1f5f9",
                 border_radius="12px",
-                border="1px dashed var(--line)",
+                border="1px dashed #94a3b8",
+                color="#0f172a",
+            )
+            # Dark
+            css.rule(
+                "html[data-theme='dark'] input, html[data-theme='dark'] select",
+                border="1px solid #334155",
+                background="#0b1220",
+                color="#e5e7eb",
+            )
+            css.rule(
+                "html[data-theme='dark'] .preview",
+                background="#111827",
+                border="1px dashed #334155",
+                color="#e5e7eb",
             )
         return css
 
@@ -258,6 +292,7 @@ class Todos(Component):
             css.rule(
                 ".wrap", padding="24px", display="grid", gap="12px", max_width="720px"
             )
+            # Light
             css.rule(
                 ".todo",
                 display="grid",
@@ -265,28 +300,49 @@ class Todos(Component):
                 gap="8px",
                 align_items="center",
                 padding="8px",
-                border="1px solid var(--line)",
+                border="1px solid #e5e7eb",
                 border_radius="10px",
-                background="var(--card-bg)",
+                background="#ffffff",
+                color="#0f172a",
             )
             css.rule(".controls", display="flex", gap="8px")
             css.rule(
                 ".btn",
-                border="1px solid var(--line)",
+                border="1px solid #e5e7eb",
                 border_radius="10px",
                 padding="6px 10px",
-                background="var(--btn-bg)",
+                background="#ffffff",
                 cursor="pointer",
-                color="var(--text)",
+                color="#0f172a",
             )
-            css.rule(".empty", color="var(--text-muted)")
+            css.rule(".empty", color="#6b7280")
             css.rule(
                 "input[type=text]",
-                border="1px solid var(--line)",
-                background="var(--field-bg)",
-                color="var(--text)",
+                border="1px solid #e5e7eb",
+                background="#ffffff",
+                color="#0f172a",
                 border_radius="10px",
                 padding="8px 10px",
+            )
+            # Dark overrides
+            css.rule(
+                "html[data-theme='dark'] .todo",
+                border="1px solid #334155",
+                background="#111827",
+                color="#e5e7eb",
+            )
+            css.rule(
+                "html[data-theme='dark'] .btn",
+                border="1px solid #334155",
+                background="#0b1220",
+                color="#e5e7eb",
+            )
+            css.rule("html[data-theme='dark'] .empty", color="#94a3b8")
+            css.rule(
+                "html[data-theme='dark'] input[type=text]",
+                border="1px solid #334155",
+                background="#0b1220",
+                color="#e5e7eb",
             )
         return css
 
@@ -294,7 +350,6 @@ class Todos(Component):
         def make_todo(text: str) -> dict:
             return {"text": Signal(text), "done": Signal(False)}
 
-        # List wrapped in a Signal so deletions/additions trigger render
         self.todos = Signal(
             [make_todo("Learn PyScript"), make_todo("Ship SiteWinder demo")]
         )
@@ -340,7 +395,7 @@ class Todos(Component):
                         del_btn = Button("✕").classes("btn")
                         self.on(del_btn, "click", lambda e, idx=i: self._del_todo(idx))
 
-            # Simple modal using a quick inner class to avoid extra file
+            # Inline modal (simple)
             class Modal(Component):
                 def styles(self):
                     css = Stylesheet()
@@ -357,11 +412,11 @@ class Todos(Component):
                         css.rule(
                             ".panel",
                             width="min(560px, 92vw)",
-                            background="var(--card-bg)",
+                            background="#ffffff",
+                            color="#0f172a",
                             border_radius="16px",
                             padding="20px",
                             box_shadow="0 10px 30px rgba(0,0,0,.2)",
-                            color="var(--text)",
                         )
                         css.rule(
                             ".actions",
@@ -372,18 +427,23 @@ class Todos(Component):
                         )
                         css.rule(
                             ".btn",
-                            border="1px solid var(--line)",
+                            border="1px solid #e5e7eb",
                             border_radius="10px",
                             padding="8px 12px",
-                            background="var(--btn-bg)",
+                            background="#ffffff",
                             cursor="pointer",
-                            color="var(--text)",
+                            color="#0f172a",
                         )
                         css.rule(
-                            ".btn.primary",
-                            background="var(--accent)",
-                            color="white",
-                            border_color="var(--accent)",
+                            "html[data-theme='dark'] .panel",
+                            background="#111827",
+                            color="#e5e7eb",
+                        )
+                        css.rule(
+                            "html[data-theme='dark'] .btn",
+                            border="1px solid #334155",
+                            background="#0b1220",
+                            color="#e5e7eb",
                         )
                     return css
 
@@ -417,7 +477,7 @@ class Todos(Component):
                             Heading2("🎉 Hello from Modal")
                             Paragraph("This modal is controlled by a Signal.")
                             with Division().classes("actions"):
-                                close = Button("Close").classes("btn primary")
+                                close = Button("Close").classes("btn")
                                 self.on(
                                     close,
                                     "click",
@@ -425,7 +485,6 @@ class Todos(Component):
                                 )
                     return root
 
-            # Trigger modal
             open_modal = Button("Open modal").classes("btn")
             self.on(open_modal, "click", lambda e: self.show_modal.set(True))
             self.portal(Modal, open_signal=self.show_modal)
@@ -441,14 +500,21 @@ class Navbar(Component):
     def styles(self):
         css = Stylesheet()
         with css:
+            # Gradient header (light)
             css.rule(
                 ".bar",
                 position="sticky",
                 top="0",
                 z_index="500",
-                backdrop_filter="saturate(180%) blur(8px)",
-                background="var(--nav-bg)",
-                border_bottom="1px solid var(--line)",
+                backdrop_filter="saturate(180%) blur(6px)",
+                background="linear-gradient(90deg, #7c3aed 0%, #06b6d4 100%)",
+                border_bottom="1px solid rgba(0,0,0,.08)",
+            )
+            # Dark header gradient
+            css.rule(
+                "html[data-theme='dark'] .bar",
+                background="linear-gradient(90deg, #0ea5e9 0%, #7c3aed 100%)",
+                border_bottom="1px solid rgba(255,255,255,.08)",
             )
             css.rule(
                 ".inner",
@@ -459,29 +525,26 @@ class Navbar(Component):
                 max_width="1200px",
                 margin="0 auto",
             )
-            css.rule(".brand", font_weight="700", color="var(--text-strong)")
-            css.rule(".nav", display="flex", gap="12px", align_items="center")
-            css.rule(".link", text_decoration="none", color="var(--text)")
-            css.rule(".link.active", color="var(--accent)")
+            css.rule(".brand", font_weight="700", color="white")
+            css.rule(".nav", display="flex", gap="14px", align_items="center")
+            css.rule(".link", text_decoration="none", color="white", opacity="0.9")
+            css.rule(".link.active", opacity="1.0", text_decoration="underline")
             css.rule(
                 ".toggle",
-                border="1px solid var(--line)",
+                border="1px solid rgba(255,255,255,.35)",
                 border_radius="12px",
                 padding="6px 10px",
-                background="var(--btn-bg)",
+                background="rgba(255,255,255,.15)",
                 cursor="pointer",
-                color="var(--text)",
+                color="white",
             )
         return css
 
     def on_init(self):
-        # theme signal is passed from App
         self.theme: Signal = self.props["theme"]
-        # track location for active link highlight
         from js import window
 
         self.current_hash = Signal(str(window.location.hash or "#/"))
-        # cache listener so we can remove it
         self._hash_proxy = None
 
     def on_mount(self):
@@ -515,13 +578,13 @@ class Navbar(Component):
         with root:
             inner = Division().classes("inner")
             with inner:
-                Span("💨 SiteWinder").classes("brand")
+                # Brand: 🐍 snake emoji as requested
+                Span("🐍 SiteWinder").classes("brand")
                 with Division().classes("nav"):
                     self._link("#/", "Home")
                     self._link("#/counter", "Counter")
                     self._link("#/form", "Form")
                     self._link("#/todos", "Todos")
-                    # theme toggle
                     btn = Button("🌙" if self.theme() == "light" else "☀️").classes(
                         "toggle"
                     )
@@ -534,53 +597,37 @@ class Navbar(Component):
 
 
 class App(Component):
-    """App shell: global styles, font loader, theme handling, navbar + outlet."""
+    """App shell: global styles, Inter font loader, theme handling, navbar + outlet."""
 
     def styles(self):
         css = Stylesheet()
         with css:
-            # Base theme tokens (no CSS variables to keep builder simple)
+            # Inter font applied broadly
             css.rule(
-                "body",
+                "html, body, input, button, select, textarea",
+                font_family="'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial",
+                line_height="1.5",
+            )
+            # Base light/dark page colors
+            css.rule(
+                "html[data-theme='light'] body",
                 margin="0",
                 background="#f7fafc",
                 color="#0f172a",
-                font_family="'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'",
             )
-            css.rule("[data-theme='dark'] body", background="#0b1220", color="#e5e7eb")
-            # Semantic tokens using selectors (light vs dark)
             css.rule(
-                ":root",
-                **{
-                    "/*": "light theme tokens (ignored by browser; comment placeholder)"
-                },
+                "html[data-theme='dark'] body",
+                margin="0",
+                background="#0b1220",
+                color="#e5e7eb",
             )
-            # Light
-            css.rule("body", **{"--noop": "0"})  # placeholder so block isn't empty
-            # Component token aliases (light)
-            css.rule(
-                ":root body",
-                **{
-                    # surfaces
-                    "/*card-bg*/ color": "inherit"
-                },
-            )
-            # We'll use explicit values inside components via these names:
-            # -- we can't set CSS custom props with the builder, so bake values:
-            css.rule(":root", **{})  # no-op
-            # Link styles
+            # Links
             css.rule("a", color="#2563eb")
-            css.rule("[data-theme='dark'] a", color="#93c5fd")
-            # App-level “design tokens” via selectors
-            # We’ll reference these in components as concrete values:
-            # Light:
-            css.rule(":root body", **{"/*text*/ outline-color": "#0f172a"})
-            # Basic utility classes
+            css.rule("html[data-theme='dark'] a", color="#93c5fd")
+            # Page container spacing
             css.rule(
                 ".container", max_width="1200px", margin="0 auto", padding="0 16px"
             )
-            # Non-variable aliases used by components:
-            css.rule(":root", **{})  # no-op to satisfy builder
         return css
 
     def on_init(self):
@@ -588,7 +635,7 @@ class App(Component):
         self._theme_unsub = None
 
     def on_mount(self):
-        # Load Inter font into <head> once
+        # Load Inter font once
         from js import document, window
 
         link_id = "sw-font-inter"
@@ -619,7 +666,6 @@ class App(Component):
                 pass
 
         self._theme_unsub = self.theme.subscribe(apply_theme)
-        # Apply immediately
         apply_theme(None, self.theme())
 
     def on_destroy(self):
@@ -633,9 +679,7 @@ class App(Component):
     def template(self):
         root = Division()
         with root:
-            # Header + nav
             self.portal(Navbar, theme=self.theme)
-            # Page outlet (router mounts here)
             Division(id="outlet").classes("container").style(
                 padding_top="16px", padding_bottom="24px"
             )
