@@ -267,24 +267,28 @@ class Todos(Component):
         def make_todo(text: str) -> dict:
             return {"text": Signal(text), "done": Signal(False)}
 
-        self.todos: list[dict] = [
-            make_todo("Learn PyScript"),
-            make_todo("Ship SiteWinder demo"),
-        ]
+        # ✅ Wrap the list in a Signal so structure changes trigger re-render
+        self.todos = Signal(
+            [make_todo("Learn PyScript"), make_todo("Ship SiteWinder demo")]
+        )
         self.new_text = Signal("")
         self.show_modal = Signal(False)
 
     def _add_todo(self):
         t = self.new_text().strip()
         if t:
-            self.todos.append({"text": Signal(t), "done": Signal(False)})
+            # reuse existing item objects + append a new one; set a NEW list instance
+            self.todos.set(self.todos() + [{"text": Signal(t), "done": Signal(False)}])
             self.new_text.set("")
 
     def _del_todo(self, idx: int):
-        if 0 <= idx < len(self.todos):
-            del self.todos[idx]
+        items = self.todos()
+        if 0 <= idx < len(items):
+            # drop the item by creating a new list (keeps other item Signals stable)
+            self.todos.set(items[:idx] + items[idx + 1 :])
 
     def template(self):
+        items = self.todos()  # reading this enrolls a dependency on the todos list
         root = Division().classes("wrap")
         with root:
             Heading1("Todos + Modal")
@@ -301,12 +305,15 @@ class Todos(Component):
                     ),
                 )
 
+                modal_btn = Button("Open modal").classes("btn")
+                self.on(modal_btn, "click", lambda e: self.show_modal.set(True))
+
             HorizontalRule().style(margin="6px 0")
 
-            if not self.todos:
+            if not items:
                 Paragraph("No todos yet. Add one above!").classes("empty")
             else:
-                for i, item in enumerate(self.todos):
+                for i, item in enumerate(items):
                     row = Division().classes("todo")
                     with row:
                         chk = Input(type="checkbox")
@@ -316,14 +323,11 @@ class Todos(Component):
                         txt = Input(type="text")
                         self.bind_value(txt, item["text"], event="input", prop="value")
                         del_btn = Button("✕").classes("btn")
+                        # capture current i via default arg
                         self.on(del_btn, "click", lambda e, idx=i: self._del_todo(idx))
 
-            # Modal controlled by self.show_modal
-            from sitewinder import (
-                Component as _C,
-            )  # avoid top-level circular import in some loaders
-
-            class Modal(_C):
+            # Modal controlled by self.show_modal (unchanged)
+            class Modal(Component):
                 def styles(self):
                     css = Stylesheet()
                     with css:
@@ -397,17 +401,14 @@ class Todos(Component):
                             Heading2("Hello from Modal")
                             Paragraph("This modal is controlled by a Signal.")
                             with Division().classes("actions"):
-                                cancel = Button("Close").classes("btn primary")
+                                close = Button("Close").classes("btn primary")
                                 self.on(
-                                    cancel,
+                                    close,
                                     "click",
                                     lambda e: self.open_signal.set(False),
                                 )
                     return root
 
-            btn_modal = Button("Open modal").classes("btn")
-            self.on(btn_modal, "click", lambda e: self.show_modal.set(True))
-            # Placeholder for modal
             self.portal(Modal, open_signal=self.show_modal)
         return root
 
