@@ -197,7 +197,7 @@ class FormDemo(Component):
             css.rule(
                 ".wrap", padding="24px", display="grid", gap="14px", max_width="560px"
             )
-            css.rule(".row", display="grid", gap="6px")
+            css.rule(".row", display="grid", gap="6px", justify_items="start")
             css.rule(
                 "input, select",
                 border="1px solid var(--line)",
