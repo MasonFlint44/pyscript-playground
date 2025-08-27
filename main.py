@@ -30,25 +30,22 @@ class Card(Component):
     def styles(self):
         css = Stylesheet()
         with css:
-            # Light defaults
+            # Use theme tokens so scoped CSS works in light/dark
             css.rule(
                 ".card",
                 padding="16px",
-                border="1px solid #e5e7eb",
+                border="1px solid var(--line)",
                 border_radius="14px",
-                background="#ffffff",
+                background="var(--card-bg)",
                 box_shadow="0 1px 2px rgba(0,0,0,.06)",
-                color="#0f172a",
+                color="var(--text)",
             )
-            css.rule(".title", font_weight="600", margin_bottom="8px", color="#0b1220")
-            # Dark overrides
             css.rule(
-                "html[data-theme='dark'] .card",
-                background="#111827",
-                border="1px solid #334155",
-                color="#e5e7eb",
+                ".title",
+                font_weight="600",
+                margin_bottom="8px",
+                color="var(--text-strong)",
             )
-            css.rule("html[data-theme='dark'] .card .title", color="#f3f4f6")
         return css
 
     def template(self):
@@ -77,16 +74,16 @@ class Home(Component):
                 gap="16px",
                 grid_template_columns="repeat(3, minmax(0, 1fr))",
             )
-            css.rule(".lead", color="#334155")
+            css.rule(".lead", color="var(--text-muted)")
             with css.media("(max-width: 900px)"):
                 css.rule(".hero", grid_template_columns="1fr")
-            css.rule("html[data-theme='dark'] .home .lead", color="#94a3b8")
         return css
 
     def template(self):
         root = Division().classes("home")
         with root:
-            Heading1("SiteWinder")
+            # Snake emoji requested here, on the Home page
+            Heading1("SiteWinder 🐍")
             Paragraph(
                 "Angular-like components in pure Python with PyScript + pyhtml5."
             ).classes("lead")
@@ -122,25 +119,24 @@ class Counter(Component):
         with css:
             css.rule(".wrap", padding="24px")
             css.rule(".row", display="flex", gap="8px", align_items="center")
-            # Inputs & buttons (light)
             css.rule(
                 ".btn",
                 width="38px",
                 height="38px",
                 border_radius="12px",
-                border="1px solid #e5e7eb",
-                background="#ffffff",
+                border="1px solid var(--line)",
+                background="var(--btn-bg)",
                 cursor="pointer",
                 font_size="18px",
                 line_height="36px",
                 text_align="center",
-                color="#0f172a",
+                color="var(--text)",
             )
             css.rule(
                 "input[type=number]",
-                border="1px solid #e5e7eb",
-                background="#ffffff",
-                color="#0f172a",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
                 border_radius="10px",
                 padding="8px 10px",
                 width="82px",
@@ -150,22 +146,9 @@ class Counter(Component):
                 display="inline-block",
                 padding="4px 10px",
                 border_radius="999px",
-                background="#7c3aed",
+                background="var(--accent)",
                 color="white",
                 font_size="12px",
-            )
-            # Dark overrides
-            css.rule(
-                "html[data-theme='dark'] .btn",
-                border="1px solid #334155",
-                background="#0b1220",
-                color="#e5e7eb",
-            )
-            css.rule(
-                "html[data-theme='dark'] input[type=number]",
-                border="1px solid #334155",
-                background="#0b1220",
-                color="#e5e7eb",
             )
         return css
 
@@ -215,12 +198,11 @@ class FormDemo(Component):
                 ".wrap", padding="24px", display="grid", gap="14px", max_width="560px"
             )
             css.rule(".row", display="grid", gap="6px")
-            # Light
             css.rule(
                 "input, select",
-                border="1px solid #e5e7eb",
-                background="#ffffff",
-                color="#0f172a",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
                 padding="10px",
                 border_radius="10px",
                 font_size="14px",
@@ -228,23 +210,10 @@ class FormDemo(Component):
             css.rule(
                 ".preview",
                 padding="12px",
-                background="#f1f5f9",
+                background="var(--card-bg)",
                 border_radius="12px",
-                border="1px dashed #94a3b8",
-                color="#0f172a",
-            )
-            # Dark
-            css.rule(
-                "html[data-theme='dark'] input, html[data-theme='dark'] select",
-                border="1px solid #334155",
-                background="#0b1220",
-                color="#e5e7eb",
-            )
-            css.rule(
-                "html[data-theme='dark'] .preview",
-                background="#111827",
-                border="1px dashed #334155",
-                color="#e5e7eb",
+                border="1px dashed var(--line)",
+                color="var(--text)",
             )
         return css
 
@@ -292,7 +261,6 @@ class Todos(Component):
             css.rule(
                 ".wrap", padding="24px", display="grid", gap="12px", max_width="720px"
             )
-            # Light
             css.rule(
                 ".todo",
                 display="grid",
@@ -300,49 +268,29 @@ class Todos(Component):
                 gap="8px",
                 align_items="center",
                 padding="8px",
-                border="1px solid #e5e7eb",
+                border="1px solid var(--line)",
                 border_radius="10px",
-                background="#ffffff",
-                color="#0f172a",
+                background="var(--card-bg)",
+                color="var(--text)",
             )
             css.rule(".controls", display="flex", gap="8px")
             css.rule(
                 ".btn",
-                border="1px solid #e5e7eb",
+                border="1px solid var(--line)",
                 border_radius="10px",
                 padding="6px 10px",
-                background="#ffffff",
+                background="var(--btn-bg)",
                 cursor="pointer",
-                color="#0f172a",
+                color="var(--text)",
             )
-            css.rule(".empty", color="#6b7280")
+            css.rule(".empty", color="var(--text-muted)")
             css.rule(
                 "input[type=text]",
-                border="1px solid #e5e7eb",
-                background="#ffffff",
-                color="#0f172a",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
                 border_radius="10px",
                 padding="8px 10px",
-            )
-            # Dark overrides
-            css.rule(
-                "html[data-theme='dark'] .todo",
-                border="1px solid #334155",
-                background="#111827",
-                color="#e5e7eb",
-            )
-            css.rule(
-                "html[data-theme='dark'] .btn",
-                border="1px solid #334155",
-                background="#0b1220",
-                color="#e5e7eb",
-            )
-            css.rule("html[data-theme='dark'] .empty", color="#94a3b8")
-            css.rule(
-                "html[data-theme='dark'] input[type=text]",
-                border="1px solid #334155",
-                background="#0b1220",
-                color="#e5e7eb",
             )
         return css
 
@@ -412,8 +360,8 @@ class Todos(Component):
                         css.rule(
                             ".panel",
                             width="min(560px, 92vw)",
-                            background="#ffffff",
-                            color="#0f172a",
+                            background="var(--card-bg)",
+                            color="var(--text)",
                             border_radius="16px",
                             padding="20px",
                             box_shadow="0 10px 30px rgba(0,0,0,.2)",
@@ -427,23 +375,12 @@ class Todos(Component):
                         )
                         css.rule(
                             ".btn",
-                            border="1px solid #e5e7eb",
+                            border="1px solid var(--line)",
                             border_radius="10px",
                             padding="8px 12px",
-                            background="#ffffff",
+                            background="var(--btn-bg)",
                             cursor="pointer",
-                            color="#0f172a",
-                        )
-                        css.rule(
-                            "html[data-theme='dark'] .panel",
-                            background="#111827",
-                            color="#e5e7eb",
-                        )
-                        css.rule(
-                            "html[data-theme='dark'] .btn",
-                            border="1px solid #334155",
-                            background="#0b1220",
-                            color="#e5e7eb",
+                            color="var(--text)",
                         )
                     return css
 
@@ -500,21 +437,15 @@ class Navbar(Component):
     def styles(self):
         css = Stylesheet()
         with css:
-            # Gradient header (light)
+            # Gradient uses tokens for easy theme swap
             css.rule(
                 ".bar",
                 position="sticky",
                 top="0",
                 z_index="500",
                 backdrop_filter="saturate(180%) blur(6px)",
-                background="linear-gradient(90deg, #7c3aed 0%, #06b6d4 100%)",
+                background="linear-gradient(90deg, var(--nav-grad-start) 0%, var(--nav-grad-end) 100%)",
                 border_bottom="1px solid rgba(0,0,0,.08)",
-            )
-            # Dark header gradient
-            css.rule(
-                "html[data-theme='dark'] .bar",
-                background="linear-gradient(90deg, #0ea5e9 0%, #7c3aed 100%)",
-                border_bottom="1px solid rgba(255,255,255,.08)",
             )
             css.rule(
                 ".inner",
@@ -525,9 +456,14 @@ class Navbar(Component):
                 max_width="1200px",
                 margin="0 auto",
             )
-            css.rule(".brand", font_weight="700", color="white")
+            css.rule(".brand", font_weight="700", color="var(--brand-on-grad)")
             css.rule(".nav", display="flex", gap="14px", align_items="center")
-            css.rule(".link", text_decoration="none", color="white", opacity="0.9")
+            css.rule(
+                ".link",
+                text_decoration="none",
+                color="var(--brand-on-grad)",
+                opacity="0.92",
+            )
             css.rule(".link.active", opacity="1.0", text_decoration="underline")
             css.rule(
                 ".toggle",
@@ -536,7 +472,7 @@ class Navbar(Component):
                 padding="6px 10px",
                 background="rgba(255,255,255,.15)",
                 cursor="pointer",
-                color="white",
+                color="var(--brand-on-grad)",
             )
         return css
 
@@ -570,16 +506,16 @@ class Navbar(Component):
         is_active = (self.current_hash() == href) or (
             href == "#/" and self.current_hash() in ("", "#")
         )
-        a = Anchor(label, href=href).classes("link" + (" active" if is_active else ""))
-        return a
+        return Anchor(label, href=href).classes(
+            "link" + (" active" if is_active else "")
+        )
 
     def template(self):
         root = Division().classes("bar")
         with root:
             inner = Division().classes("inner")
             with inner:
-                # Brand: 🐍 snake emoji as requested
-                Span("🐍 SiteWinder").classes("brand")
+                Span("SiteWinder").classes("brand")
                 with Division().classes("nav"):
                     self._link("#/", "Home")
                     self._link("#/counter", "Counter")
@@ -588,58 +524,87 @@ class Navbar(Component):
                     btn = Button("🌙" if self.theme() == "light" else "☀️").classes(
                         "toggle"
                     )
-
-                    def _toggle(_):
-                        self.theme.set("dark" if self.theme() == "light" else "light")
-
-                    self.on(btn, "click", _toggle)
+                    self.on(
+                        btn,
+                        "click",
+                        lambda _: self.theme.set(
+                            "dark" if self.theme() == "light" else "light"
+                        ),
+                    )
         return root
 
 
 class App(Component):
-    """App shell: global styles, Inter font loader, theme handling, navbar + outlet."""
+    """App shell: global styles & tokens, Inter font loader, theme handling, navbar + outlet."""
 
     def styles(self):
         css = Stylesheet()
         with css:
-            # Inter applied globally
+            # Global font & base layout
             css.rule(
                 "html, body, input, button, select, textarea",
                 font_family="'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial",
                 line_height="1.5",
             )
-            # Light/Dark body backgrounds + text
             css.rule(
-                "html[data-theme='light'] body",
-                margin="0",
-                background="#f7fafc",
-                color="#0f172a",
+                "body", margin="0", background="var(--surface)", color="var(--text)"
             )
-            css.rule(
-                "html[data-theme='dark'] body",
-                margin="0",
-                background="#0b1220",
-                color="#e5e7eb",
-            )
-            # Link colors
-            css.rule("a", color="#2563eb")
-            css.rule("html[data-theme='dark'] a", color="#93c5fd")
-            # Page container
+            css.rule("a", color="var(--link)")
             css.rule(
                 ".container", max_width="1200px", margin="0 auto", padding="0 16px"
+            )
+
+            # ---- Theme tokens (global; referenced by all components) ---------------
+            # Light theme
+            css.rule(
+                "html[data-theme='light']",
+                **{
+                    "--surface": "#f7fafc",
+                    "--text": "#0f172a",
+                    "--text-strong": "#0b1220",
+                    "--text-muted": "#334155",
+                    "--line": "#e5e7eb",
+                    "--card-bg": "#ffffff",
+                    "--field-bg": "#ffffff",
+                    "--btn-bg": "#ffffff",
+                    "--accent": "#7c3aed",
+                    "--link": "#2563eb",
+                    "--nav-grad-start": "#7c3aed",
+                    "--nav-grad-end": "#06b6d4",
+                    "--brand-on-grad": "#ffffff",
+                },
+            )
+            # Dark theme
+            css.rule(
+                "html[data-theme='dark']",
+                **{
+                    "--surface": "#0b1220",
+                    "--text": "#e5e7eb",
+                    "--text-strong": "#f3f4f6",
+                    "--text-muted": "#94a3b8",
+                    "--line": "#334155",
+                    "--card-bg": "#111827",
+                    "--field-bg": "#0b1220",
+                    "--btn-bg": "#0b1220",
+                    "--accent": "#7c3aed",
+                    "--link": "#93c5fd",
+                    "--nav-grad-start": "#0ea5e9",
+                    "--nav-grad-end": "#7c3aed",
+                    "--brand-on-grad": "#ffffff",
+                },
             )
         return css
 
     def on_init(self):
         self.theme = Signal("light")
         self._theme_unsub = None
-        # ✅ Make App styles GLOBAL (no scoping → selectors like html/body work)
+        # Make App styles GLOBAL so they can target html/body and define tokens
         self._use_scoped_styles = False
 
     def on_mount(self):
+        # Load Inter font once
         from js import document, window
 
-        # Load Inter font once
         if not document.getElementById("sw-font-inter"):
             ln = document.createElement("link")
             ln.id = "sw-font-inter"
@@ -647,28 +612,37 @@ class App(Component):
             ln.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
             document.head.appendChild(ln)
 
-        # Load persisted theme (if any)
-        saved = window.localStorage.getItem("sw-theme")
-        if saved in ("light", "dark"):
-            self.theme.set(saved)
+        # Read persisted theme (if any)
+        try:
+            saved = window.localStorage.getItem("sw-theme")
+            if saved in ("light", "dark"):
+                self.theme.set(saved)
+        except Exception:
+            pass
 
         # Apply + persist theme
         def apply_theme(_old, new):
-            document.documentElement.setAttribute("data-theme", new)
-            window.localStorage.setItem("sw-theme", new)
+            try:
+                document.documentElement.setAttribute("data-theme", new)
+                window.localStorage.setItem("sw-theme", new)
+            except Exception:
+                pass
 
         self._theme_unsub = self.theme.subscribe(apply_theme)
-        apply_theme(None, self.theme())  # set immediately
+        apply_theme(None, self.theme())
 
     def on_destroy(self):
         if self._theme_unsub:
-            self._theme_unsub()
+            try:
+                self._theme_unsub()
+            except Exception:
+                pass
             self._theme_unsub = None
 
     def template(self):
         root = Division()
         with root:
-            self.portal(Navbar, theme=self.theme)  # 🐍 gradient header from earlier
+            self.portal(Navbar, theme=self.theme)
             Division(id="outlet").classes("container").style(
                 padding_top="16px", padding_bottom="24px"
             )
