@@ -182,6 +182,7 @@ class _ValueBinding:
     signal: Signal
     prop: str = "value"
     event: str = "input"
+    coerce: Optional[Callable[[Any], Any]] = None
     proxy: Any = None
     attached_to: Any = None
 
@@ -202,7 +203,7 @@ class Component:
 
     Helpers inside template():
       - self.on(element, 'click', handler)
-      - self.bind_value(input_element, signal, event='input'|'change', prop='value'|'checked')
+      - self.bind_value(input_element, signal, event='input'|'change', prop='value'|'checked', coerce=...)
       - self.portal(ChildComponentClass, **props)
     """
 
@@ -307,12 +308,18 @@ class Component:
         *,
         event: str = "input",
         prop: str = "value",
+        coerce: Optional[Callable[[Any], Any]] = None,
     ) -> Element:
         # Use a STABLE id based on the Signal object so we can restore focus after re-renders
         stable_id = self._stable_id_for(signal, prefix="sv")
         elem_id = self._ensure_elem_marker(element, preferred_id=stable_id)
+
+        # Infer coercion if not provided
+        if coerce is None:
+            coerce = self._infer_coercer(signal, element, prop)
+
         self._value_bindings.append(
-            _ValueBinding(elem_id, signal, prop=prop, event=event)
+            _ValueBinding(elem_id, signal, prop=prop, event=event, coerce=coerce)
         )
         try:
             if prop == "checked":
@@ -344,6 +351,49 @@ class Component:
         sid = f"{prefix}-{self._stable_ids_counter}"
         self._stable_ids[key] = sid
         return sid
+
+    # ----- coercion helpers -------------------------------------------------------
+    def _infer_coercer(self, signal: Signal, element: Element, prop: str):
+        """
+        Return a callable to coerce DOM -> Signal values, or None to pass-through.
+        - For number inputs: int/float based on initial signal type.
+        - For checkboxes: bool.
+        - Else: identity.
+        """
+        # Checkbox / boolean property
+        if prop == "checked":
+            return lambda v: bool(v)
+
+        # Value-based inputs
+        if prop == "value":
+            input_type = (element.attrs.get("type") or "").lower()
+            initial = signal.get()
+            if input_type in ("number", "range"):
+                if isinstance(initial, float):
+
+                    def _to_float(v, _sig=signal):
+                        try:
+                            if v == "" or v is None:
+                                return _sig.get()
+                            return float(v)
+                        except Exception:
+                            return _sig.get()
+
+                    return _to_float
+                else:
+                    # default to int
+                    def _to_int(v, _sig=signal):
+                        try:
+                            if v == "" or v is None:
+                                return _sig.get()
+                            # Accept inputs like "2", "2.0"
+                            return int(float(v))
+                        except Exception:
+                            return _sig.get()
+
+                    return _to_int
+        # Default: no conversion
+        return None
 
     # ----- focus capture/restore --------------------------------------------------
     def _is_within_root(self, el) -> bool:
@@ -597,12 +647,16 @@ class Component:
             if not _is_dom_node(el):
                 continue
 
-            # Only set if different to avoid caret jumps during typing
+            # initialize DOM from signal (stringify for value props)
             try:
-                current = getattr(el, vb.prop)
                 new_val = vb.signal.get()
-                if current != new_val:
-                    setattr(el, vb.prop, new_val)
+                if vb.prop == "value":
+                    new_val_dom = "" if new_val is None else str(new_val)
+                else:
+                    new_val_dom = new_val
+                current = getattr(el, vb.prop)
+                if current != new_val_dom:
+                    setattr(el, vb.prop, new_val_dom)
             except Exception:
                 pass
 
@@ -611,6 +665,12 @@ class Component:
                     val = getattr(ev.target, _vb.prop)
                 except Exception:
                     val = None
+                if _vb.coerce:
+                    try:
+                        val = _vb.coerce(val)
+                    except Exception:
+                        # fall back to raw value
+                        pass
                 _vb.signal.set(val)
 
             proxy = _create_proxy(_handler)
@@ -619,8 +679,14 @@ class Component:
             def _update_dom(_old, _new, _el=el, _vb=vb):
                 if _is_dom_node(_el):
                     try:
-                        if getattr(_el, _vb.prop) != _new:
-                            setattr(_el, _vb.prop, _new)
+                        # stringify for 'value' to avoid int vs str mismatch churn
+                        desired = (
+                            ""
+                            if _new is None
+                            else (str(_new) if _vb.prop == "value" else _new)
+                        )
+                        if getattr(_el, _vb.prop) != desired:
+                            setattr(_el, _vb.prop, desired)
                     except Exception:
                         pass
 
