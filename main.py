@@ -602,13 +602,13 @@ class App(Component):
     def styles(self):
         css = Stylesheet()
         with css:
-            # Inter font applied broadly
+            # Inter applied globally
             css.rule(
                 "html, body, input, button, select, textarea",
                 font_family="'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial",
                 line_height="1.5",
             )
-            # Base light/dark page colors
+            # Light/Dark body backgrounds + text
             css.rule(
                 "html[data-theme='light'] body",
                 margin="0",
@@ -621,10 +621,10 @@ class App(Component):
                 background="#0b1220",
                 color="#e5e7eb",
             )
-            # Links
+            # Link colors
             css.rule("a", color="#2563eb")
             css.rule("html[data-theme='dark'] a", color="#93c5fd")
-            # Page container spacing
+            # Page container
             css.rule(
                 ".container", max_width="1200px", margin="0 auto", padding="0 16px"
             )
@@ -633,53 +633,42 @@ class App(Component):
     def on_init(self):
         self.theme = Signal("light")
         self._theme_unsub = None
+        # ✅ Make App styles GLOBAL (no scoping → selectors like html/body work)
+        self._use_scoped_styles = False
 
     def on_mount(self):
-        # Load Inter font once
         from js import document, window
 
-        link_id = "sw-font-inter"
-        try:
-            if not document.getElementById(link_id):
-                ln = document.createElement("link")
-                ln.id = link_id
-                ln.rel = "stylesheet"
-                ln.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-                document.head.appendChild(ln)
-        except Exception:
-            pass
+        # Load Inter font once
+        if not document.getElementById("sw-font-inter"):
+            ln = document.createElement("link")
+            ln.id = "sw-font-inter"
+            ln.rel = "stylesheet"
+            ln.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+            document.head.appendChild(ln)
 
-        # Read persisted theme
-        try:
-            saved = window.localStorage.getItem("sw-theme")
-            if saved in ("light", "dark"):
-                self.theme.set(saved)
-        except Exception:
-            pass
+        # Load persisted theme (if any)
+        saved = window.localStorage.getItem("sw-theme")
+        if saved in ("light", "dark"):
+            self.theme.set(saved)
 
-        # Apply + persist theme on changes
+        # Apply + persist theme
         def apply_theme(_old, new):
-            try:
-                document.documentElement.setAttribute("data-theme", new)
-                window.localStorage.setItem("sw-theme", new)
-            except Exception:
-                pass
+            document.documentElement.setAttribute("data-theme", new)
+            window.localStorage.setItem("sw-theme", new)
 
         self._theme_unsub = self.theme.subscribe(apply_theme)
-        apply_theme(None, self.theme())
+        apply_theme(None, self.theme())  # set immediately
 
     def on_destroy(self):
         if self._theme_unsub:
-            try:
-                self._theme_unsub()
-            except Exception:
-                pass
+            self._theme_unsub()
             self._theme_unsub = None
 
     def template(self):
         root = Division()
         with root:
-            self.portal(Navbar, theme=self.theme)
+            self.portal(Navbar, theme=self.theme)  # 🐍 gradient header from earlier
             Division(id="outlet").classes("container").style(
                 padding_top="16px", padding_bottom="24px"
             )
