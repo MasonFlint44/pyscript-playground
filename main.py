@@ -83,7 +83,7 @@ class Home(Component):
         root = Division().classes("home")
         with root:
             # Snake emoji requested here, on the Home page
-            Heading1("SiteWinder 🐍")
+            Heading1("🐍 SiteWinder")
             Paragraph(
                 "Angular-like components in pure Python with PyScript + pyhtml5."
             ).classes("lead")
@@ -515,7 +515,7 @@ class Navbar(Component):
         with root:
             inner = Division().classes("inner")
             with inner:
-                Span("SiteWinder").classes("brand")
+                Span("🐍 SiteWinder").classes("brand")
                 with Division().classes("nav"):
                     self._link("#/", "Home")
                     self._link("#/counter", "Counter")
