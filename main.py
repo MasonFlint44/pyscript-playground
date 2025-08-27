@@ -2,7 +2,7 @@ from sitewinder import Component, Signal, Router, bootstrap
 from pyhtml5 import (
     Division,
     Header,
-    Main,
+    Navigation,
     Section,
     Article,
     Paragraph,
@@ -18,17 +18,14 @@ from pyhtml5 import (
     Select,
     Option,
     Span,
+    Anchor,
 )
 
 # ------------------------ Reusable Components ------------------------------------
 
 
 class Card(Component):
-    """
-    Simple reusable card with title + body content.
-    Use via: self.portal(Card, title="...", body=lambda: <Node>)
-    Pass body as a callable that returns a Node so it renders fresh each time.
-    """
+    """Reusable card with title + body content (callable)."""
 
     def styles(self):
         css = Stylesheet()
@@ -37,11 +34,16 @@ class Card(Component):
                 ".card",
                 padding="16px",
                 border="1px solid #e5e7eb",
-                border_radius="12px",
-                background="white",
-                box_shadow="0 1px 2px rgba(0,0,0,.05)",
+                border_radius="14px",
+                background="var(--card-bg)",
+                box_shadow="0 1px 2px rgba(0,0,0,.06)",
             )
-            css.rule(".title", font_weight="600", margin_bottom="8px")
+            css.rule(
+                ".title",
+                font_weight="600",
+                margin_bottom="8px",
+                color="var(--text-strong)",
+            )
         return css
 
     def template(self):
@@ -52,8 +54,7 @@ class Card(Component):
             if title:
                 Span(title).classes("title")
             if callable(body):
-                # ⚠️ Do NOT panel.add(...). Since we're inside `with root:`,
-                # calling body() here will auto-append anything it creates.
+                # Render body content; context manager will append.
                 body()
         return root
 
@@ -65,48 +66,48 @@ class Home(Component):
     def styles(self):
         css = Stylesheet()
         with css:
+            css.rule(".home", padding="24px")
             css.rule(
                 ".hero",
                 display="grid",
                 gap="16px",
                 grid_template_columns="repeat(3, minmax(0, 1fr))",
             )
-            css.rule(".grid", display="grid", gap="16px")
+            css.rule(".lead", color="var(--text-muted)")
             with css.media("(max-width: 900px)"):
                 css.rule(".hero", grid_template_columns="1fr")
         return css
 
     def template(self):
-        root = Division().classes("home").style(padding="20px")
+        root = Division().classes("home")
         with root:
-            with Header():
-                Heading1("Welcome to SiteWinder ⚡")
-                Paragraph(
-                    "Angular-like components in pure Python with PyScript + pyhtml5."
+            Heading1("💨 SiteWinder")
+            Paragraph(
+                "Angular-like components in pure Python with PyScript + pyhtml5."
+            ).classes("lead")
+            HorizontalRule().style(margin="12px 0")
+            with Section().classes("hero"):
+                self.portal(
+                    Card,
+                    title="🔢 Counters",
+                    body=lambda: Paragraph(
+                        "Visit “#/counter” for signals, events, and computed totals."
+                    ),
                 )
-            with Main():
-                with Section().classes("hero"):
-                    self.portal(
-                        Card,
-                        title="Counters",
-                        body=lambda: Paragraph(
-                            "Visit “#/counter” for signals, events, and computed views."
-                        ),
-                    )
-                    self.portal(
-                        Card,
-                        title="Forms & Binding",
-                        body=lambda: Paragraph(
-                            "See two-way binding (text, checkbox, select) on “#/form”."
-                        ),
-                    )
-                    self.portal(
-                        Card,
-                        title="Todos & Modal",
-                        body=lambda: Paragraph(
-                            "Inline editing with stable focus, plus a modal on “#/todos”."
-                        ),
-                    )
+                self.portal(
+                    Card,
+                    title="📝 Forms & Binding",
+                    body=lambda: Paragraph(
+                        "See text/checkbox/select bindings on “#/form”."
+                    ),
+                )
+                self.portal(
+                    Card,
+                    title="✅ Todos & Modal",
+                    body=lambda: Paragraph(
+                        "Inline editing with stable focus and a modal on “#/todos”."
+                    ),
+                )
         return root
 
 
@@ -114,28 +115,38 @@ class Counter(Component):
     def styles(self):
         css = Stylesheet()
         with css:
-            css.rule(".wrap", padding="20px")
+            css.rule(".wrap", padding="24px")
             css.rule(".row", display="flex", gap="8px", align_items="center")
             css.rule(
                 ".btn",
-                width="36px",
-                height="36px",
+                width="38px",
+                height="38px",
                 border_radius="12px",
-                border="1px solid #ddd",
-                background="white",
+                border="1px solid var(--line)",
+                background="var(--btn-bg)",
                 cursor="pointer",
                 font_size="18px",
-                line_height="34px",
+                line_height="36px",
                 text_align="center",
+                color="var(--text)",
             )
             css.rule(
                 ".pill",
                 display="inline-block",
                 padding="4px 10px",
                 border_radius="999px",
-                background="#111827",
+                background="var(--accent)",
                 color="white",
                 font_size="12px",
+            )
+            css.rule(
+                "input[type=number]",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
+                border_radius="10px",
+                padding="8px 10px",
+                width="82px",
             )
         return css
 
@@ -158,14 +169,15 @@ class Counter(Component):
         total = self.count_a() + self.count_b()
         root = Division().classes("wrap")
         with root:
-            Heading1("Counter Playground")
-            Paragraph("Demonstrates Signals, events, and a computed total.")
+            Heading1("🔢 Counter Playground")
+            Paragraph("Signals, events, two counters, and a computed total.")
             with Division().classes("row"):
                 Paragraph("Step:")
                 step_in = Input(type="number", min="1", value=str(self.step()))
-                self.bind_value(step_in, self.step, event="input", prop="value")
+                self.bind_value(
+                    step_in, self.step, event="input", prop="value"
+                )  # coerce → int via sitewinder
             HorizontalRule().style(margin="12px 0")
-            # ⚠️ Don't call root.add(...) while inside `with root:`—just create the rows.
             self._controls("Counter A:", self.count_a)
             self._controls("Counter B:", self.count_b)
             HorizontalRule().style(margin="12px 0")
@@ -181,12 +193,14 @@ class FormDemo(Component):
         css = Stylesheet()
         with css:
             css.rule(
-                ".wrap", padding="20px", display="grid", gap="14px", max_width="520px"
+                ".wrap", padding="24px", display="grid", gap="14px", max_width="560px"
             )
             css.rule(".row", display="grid", gap="6px")
             css.rule(
                 "input, select",
-                border="1px solid #d1d5db",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
                 padding="10px",
                 border_radius="10px",
                 font_size="14px",
@@ -194,9 +208,9 @@ class FormDemo(Component):
             css.rule(
                 ".preview",
                 padding="12px",
-                background="#f9fafb",
-                border_radius="10px",
-                border="1px dashed #d1d5db",
+                background="var(--card-bg)",
+                border_radius="12px",
+                border="1px dashed var(--line)",
             )
         return css
 
@@ -208,7 +222,7 @@ class FormDemo(Component):
     def template(self):
         root = Division().classes("wrap")
         with root:
-            Heading1("Form Binding")
+            Heading1("📝 Form Binding")
             with Division().classes("row"):
                 Label("Name")
                 name_inp = Input(type="text", placeholder="Your name")
@@ -229,17 +243,21 @@ class FormDemo(Component):
 
             HorizontalRule().style(margin="8px 0")
             with Division().classes("preview"):
-                Paragraph(f"Hello, {self.name()}!")
-                Paragraph(f"Admin: {self.is_admin()}")
-                Paragraph(f"Favorite color: {self.color()}")
+                Paragraph(f"Hello, {self.name()}! 👋")
+                Paragraph(f"Admin: {'✅' if self.is_admin() else '❌'}")
+                Paragraph(f"Favorite color: 🎨 {self.color()}")
         return root
 
 
 class Todos(Component):
+    """Todos list where structure mutations cause re-renders (list wrapped in a Signal)."""
+
     def styles(self):
         css = Stylesheet()
         with css:
-            css.rule(".wrap", padding="20px", display="grid", gap="12px")
+            css.rule(
+                ".wrap", padding="24px", display="grid", gap="12px", max_width="720px"
+            )
             css.rule(
                 ".todo",
                 display="grid",
@@ -247,27 +265,36 @@ class Todos(Component):
                 gap="8px",
                 align_items="center",
                 padding="8px",
-                border="1px solid #eee",
+                border="1px solid var(--line)",
                 border_radius="10px",
-                background="white",
+                background="var(--card-bg)",
             )
             css.rule(".controls", display="flex", gap="8px")
             css.rule(
                 ".btn",
-                border="1px solid #ddd",
+                border="1px solid var(--line)",
                 border_radius="10px",
                 padding="6px 10px",
-                background="white",
+                background="var(--btn-bg)",
                 cursor="pointer",
+                color="var(--text)",
             )
-            css.rule(".empty", color="#6b7280")
+            css.rule(".empty", color="var(--text-muted)")
+            css.rule(
+                "input[type=text]",
+                border="1px solid var(--line)",
+                background="var(--field-bg)",
+                color="var(--text)",
+                border_radius="10px",
+                padding="8px 10px",
+            )
         return css
 
     def on_init(self):
         def make_todo(text: str) -> dict:
             return {"text": Signal(text), "done": Signal(False)}
 
-        # ✅ Wrap the list in a Signal so structure changes trigger re-render
+        # List wrapped in a Signal so deletions/additions trigger render
         self.todos = Signal(
             [make_todo("Learn PyScript"), make_todo("Ship SiteWinder demo")]
         )
@@ -277,41 +304,29 @@ class Todos(Component):
     def _add_todo(self):
         t = self.new_text().strip()
         if t:
-            # reuse existing item objects + append a new one; set a NEW list instance
             self.todos.set(self.todos() + [{"text": Signal(t), "done": Signal(False)}])
             self.new_text.set("")
 
     def _del_todo(self, idx: int):
         items = self.todos()
         if 0 <= idx < len(items):
-            # drop the item by creating a new list (keeps other item Signals stable)
             self.todos.set(items[:idx] + items[idx + 1 :])
 
     def template(self):
-        items = self.todos()  # reading this enrolls a dependency on the todos list
+        items = self.todos()
         root = Division().classes("wrap")
         with root:
-            Heading1("Todos + Modal")
+            Heading1("✅ Todos & Modal")
             with Division().classes("controls"):
                 inp = Input(type="text", placeholder="What’s next?")
                 self.bind_value(inp, self.new_text, event="input", prop="value")
                 add_btn = Button("Add").classes("btn")
                 self.on(add_btn, "click", lambda e: self._add_todo())
-                self.on(
-                    inp,
-                    "keydown",
-                    lambda ev: (
-                        self._add_todo() if getattr(ev, "key", "") == "Enter" else None
-                    ),
-                )
-
-                modal_btn = Button("Open modal").classes("btn")
-                self.on(modal_btn, "click", lambda e: self.show_modal.set(True))
 
             HorizontalRule().style(margin="6px 0")
 
             if not items:
-                Paragraph("No todos yet. Add one above!").classes("empty")
+                Paragraph("No todos yet. Add one above! ✨").classes("empty")
             else:
                 for i, item in enumerate(items):
                     row = Division().classes("todo")
@@ -323,10 +338,9 @@ class Todos(Component):
                         txt = Input(type="text")
                         self.bind_value(txt, item["text"], event="input", prop="value")
                         del_btn = Button("✕").classes("btn")
-                        # capture current i via default arg
                         self.on(del_btn, "click", lambda e, idx=i: self._del_todo(idx))
 
-            # Modal controlled by self.show_modal (unchanged)
+            # Simple modal using a quick inner class to avoid extra file
             class Modal(Component):
                 def styles(self):
                     css = Stylesheet()
@@ -343,10 +357,11 @@ class Todos(Component):
                         css.rule(
                             ".panel",
                             width="min(560px, 92vw)",
-                            background="white",
+                            background="var(--card-bg)",
                             border_radius="16px",
                             padding="20px",
                             box_shadow="0 10px 30px rgba(0,0,0,.2)",
+                            color="var(--text)",
                         )
                         css.rule(
                             ".actions",
@@ -357,17 +372,18 @@ class Todos(Component):
                         )
                         css.rule(
                             ".btn",
-                            border="1px solid #ddd",
+                            border="1px solid var(--line)",
                             border_radius="10px",
                             padding="8px 12px",
-                            background="white",
+                            background="var(--btn-bg)",
                             cursor="pointer",
+                            color="var(--text)",
                         )
                         css.rule(
                             ".btn.primary",
-                            background="#111827",
+                            background="var(--accent)",
                             color="white",
-                            border_color="#111827",
+                            border_color="var(--accent)",
                         )
                     return css
 
@@ -398,7 +414,7 @@ class Todos(Component):
                     with root:
                         panel = Division().classes("panel")
                         with panel:
-                            Heading2("Hello from Modal")
+                            Heading2("🎉 Hello from Modal")
                             Paragraph("This modal is controlled by a Signal.")
                             with Division().classes("actions"):
                                 close = Button("Close").classes("btn primary")
@@ -409,13 +425,221 @@ class Todos(Component):
                                 )
                     return root
 
+            # Trigger modal
+            open_modal = Button("Open modal").classes("btn")
+            self.on(open_modal, "click", lambda e: self.show_modal.set(True))
             self.portal(Modal, open_signal=self.show_modal)
         return root
 
 
-class App(Component):
+# ----------------------------- App Shell -----------------------------------------
+
+
+class Navbar(Component):
+    """Sticky top bar with links + light/dark toggle (persists in localStorage)."""
+
+    def styles(self):
+        css = Stylesheet()
+        with css:
+            css.rule(
+                ".bar",
+                position="sticky",
+                top="0",
+                z_index="500",
+                backdrop_filter="saturate(180%) blur(8px)",
+                background="var(--nav-bg)",
+                border_bottom="1px solid var(--line)",
+            )
+            css.rule(
+                ".inner",
+                display="flex",
+                align_items="center",
+                justify_content="space-between",
+                padding="10px 16px",
+                max_width="1200px",
+                margin="0 auto",
+            )
+            css.rule(".brand", font_weight="700", color="var(--text-strong)")
+            css.rule(".nav", display="flex", gap="12px", align_items="center")
+            css.rule(".link", text_decoration="none", color="var(--text)")
+            css.rule(".link.active", color="var(--accent)")
+            css.rule(
+                ".toggle",
+                border="1px solid var(--line)",
+                border_radius="12px",
+                padding="6px 10px",
+                background="var(--btn-bg)",
+                cursor="pointer",
+                color="var(--text)",
+            )
+        return css
+
+    def on_init(self):
+        # theme signal is passed from App
+        self.theme: Signal = self.props["theme"]
+        # track location for active link highlight
+        from js import window
+
+        self.current_hash = Signal(str(window.location.hash or "#/"))
+        # cache listener so we can remove it
+        self._hash_proxy = None
+
+    def on_mount(self):
+        from js import window
+        from pyodide.ffi import create_proxy
+
+        self._hash_proxy = create_proxy(
+            lambda *_: self.current_hash.set(str(window.location.hash or "#/"))
+        )
+        window.addEventListener("hashchange", self._hash_proxy)
+
+    def on_destroy(self):
+        try:
+            from js import window
+
+            if self._hash_proxy:
+                window.removeEventListener("hashchange", self._hash_proxy)
+                self._hash_proxy = None
+        except Exception:
+            pass
+
+    def _link(self, href: str, label: str):
+        is_active = (self.current_hash() == href) or (
+            href == "#/" and self.current_hash() in ("", "#")
+        )
+        a = Anchor(label, href=href).classes("link" + (" active" if is_active else ""))
+        return a
+
     def template(self):
-        return Division(id="outlet")
+        root = Division().classes("bar")
+        with root:
+            inner = Division().classes("inner")
+            with inner:
+                Span("💨 SiteWinder").classes("brand")
+                with Division().classes("nav"):
+                    self._link("#/", "Home")
+                    self._link("#/counter", "Counter")
+                    self._link("#/form", "Form")
+                    self._link("#/todos", "Todos")
+                    # theme toggle
+                    btn = Button("🌙" if self.theme() == "light" else "☀️").classes(
+                        "toggle"
+                    )
+
+                    def _toggle(_):
+                        self.theme.set("dark" if self.theme() == "light" else "light")
+
+                    self.on(btn, "click", _toggle)
+        return root
+
+
+class App(Component):
+    """App shell: global styles, font loader, theme handling, navbar + outlet."""
+
+    def styles(self):
+        css = Stylesheet()
+        with css:
+            # Base theme tokens (no CSS variables to keep builder simple)
+            css.rule(
+                "body",
+                margin="0",
+                background="#f7fafc",
+                color="#0f172a",
+                font_family="'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'",
+            )
+            css.rule("[data-theme='dark'] body", background="#0b1220", color="#e5e7eb")
+            # Semantic tokens using selectors (light vs dark)
+            css.rule(
+                ":root",
+                **{
+                    "/*": "light theme tokens (ignored by browser; comment placeholder)"
+                },
+            )
+            # Light
+            css.rule("body", **{"--noop": "0"})  # placeholder so block isn't empty
+            # Component token aliases (light)
+            css.rule(
+                ":root body",
+                **{
+                    # surfaces
+                    "/*card-bg*/ color": "inherit"
+                },
+            )
+            # We'll use explicit values inside components via these names:
+            # -- we can't set CSS custom props with the builder, so bake values:
+            css.rule(":root", **{})  # no-op
+            # Link styles
+            css.rule("a", color="#2563eb")
+            css.rule("[data-theme='dark'] a", color="#93c5fd")
+            # App-level “design tokens” via selectors
+            # We’ll reference these in components as concrete values:
+            # Light:
+            css.rule(":root body", **{"/*text*/ outline-color": "#0f172a"})
+            # Basic utility classes
+            css.rule(
+                ".container", max_width="1200px", margin="0 auto", padding="0 16px"
+            )
+            # Non-variable aliases used by components:
+            css.rule(":root", **{})  # no-op to satisfy builder
+        return css
+
+    def on_init(self):
+        self.theme = Signal("light")
+        self._theme_unsub = None
+
+    def on_mount(self):
+        # Load Inter font into <head> once
+        from js import document, window
+
+        link_id = "sw-font-inter"
+        try:
+            if not document.getElementById(link_id):
+                ln = document.createElement("link")
+                ln.id = link_id
+                ln.rel = "stylesheet"
+                ln.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+                document.head.appendChild(ln)
+        except Exception:
+            pass
+
+        # Read persisted theme
+        try:
+            saved = window.localStorage.getItem("sw-theme")
+            if saved in ("light", "dark"):
+                self.theme.set(saved)
+        except Exception:
+            pass
+
+        # Apply + persist theme on changes
+        def apply_theme(_old, new):
+            try:
+                document.documentElement.setAttribute("data-theme", new)
+                window.localStorage.setItem("sw-theme", new)
+            except Exception:
+                pass
+
+        self._theme_unsub = self.theme.subscribe(apply_theme)
+        # Apply immediately
+        apply_theme(None, self.theme())
+
+    def on_destroy(self):
+        if self._theme_unsub:
+            try:
+                self._theme_unsub()
+            except Exception:
+                pass
+            self._theme_unsub = None
+
+    def template(self):
+        root = Division()
+        with root:
+            # Header + nav
+            self.portal(Navbar, theme=self.theme)
+            # Page outlet (router mounts here)
+            Division(id="outlet").classes("container").style(
+                padding_top="16px", padding_bottom="24px"
+            )
+        return root
 
 
 # ----------------------------- Router + Bootstrap --------------------------------
