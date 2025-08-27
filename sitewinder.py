@@ -9,7 +9,7 @@ Features:
 - Hash router and simple bootstrap().
 - Optional per-instance style scoping (opt-in).
 
-Requires: pyhtml5.py in the same directory (see previous messages).
+Requires: pyhtml5.py in the same directory.
 """
 
 from __future__ import annotations
@@ -57,7 +57,6 @@ def _is_dom_node(obj) -> bool:
     if obj is None:
         return False
     try:
-        # JsNull/undefined won't have these attributes and may raise
         return hasattr(obj, "addEventListener") or hasattr(obj, "nodeType")
     except Exception:
         return False
@@ -65,7 +64,6 @@ def _is_dom_node(obj) -> bool:
 
 # --------- pyhtml5 integration ----------------------------------------------------
 
-# We only need the types + a couple of elements.
 from pyhtml5 import (
     Node,
     Element,
@@ -75,8 +73,6 @@ from pyhtml5 import (
 )
 
 # --------- Reactive core ----------------------------------------------------------
-
-# A tiny reactive system: Signals track components that read them during render.
 
 _current_collector_stack: List["DependencyCollector"] = []
 
@@ -109,7 +105,6 @@ class Signal:
         self._subs: Set[Callable[[Any, Any], None]] = set()
         self._name = name
 
-    # ergonomic access: s() -> get, s.value -> get, s.set(x) -> set
     def __call__(self) -> Any:
         return self.get()
 
@@ -208,44 +203,37 @@ class Component:
     Helpers you can use inside template():
       - self.on(element, 'click', handler)
       - self.bind_value(input_element, signal, event='input'|'change', prop='value'|'checked')
-      - self.portal(ChildComponentClass, **props)  # nest components
+      - self.portal(ChildComponentClass, **props)
     """
 
-    selector: Optional[str] = None  # not required; bootstrap uses target selector
+    selector: Optional[str] = None
 
     def __init__(self, **props):
         self.props = props
         self._instance_id = next(_comp_instance_iter)
-        self._scoped_attr = (
-            f'data-sw-cid="{self._instance_id}"'  # used if scoped styles are enabled
-        )
-        self._host_js = None  # JS Element we mount into
-        self._root_js = None  # JS root created for this component
+        self._scoped_attr = f'data-sw-cid="{self._instance_id}"'
+        self._host_js = None
+        self._root_js = None
         self._mounted = False
         self._destroyed = False
 
         self._event_bindings: List[_EventBinding] = []
         self._value_bindings: List[_ValueBinding] = []
-        self._portal_children: List[Tuple[str, type, Dict[str, Any]]] = (
-            []
-        )  # (portal_id, class, props)
+        self._portal_children: List[Tuple[str, type, Dict[str, Any]]] = []
 
         self._signal_unsubs: List[Callable[[], None]] = []
         self._pending_render = False
 
-        self._style_el = None  # <style> tag if mount_styles was used
-
-        self._use_scoped_styles = True  # can be toggled per component instance
+        self._style_el = None
+        self._use_scoped_styles = True
 
         self.on_init()
 
     # ----- override points --------------------------------------------------------
     def template(self) -> Node:
-        """Return a pyhtml5 Node (Element/Fragment). Must be overridden."""
         raise NotImplementedError
 
     def styles(self) -> Optional[Union[Stylesheet, str]]:
-        """Return component styles (optional). Stylesheet or CSS text."""
         return None
 
     # ----- lifecycle --------------------------------------------------------------
@@ -263,14 +251,8 @@ class Component:
 
     # ----- public API -------------------------------------------------------------
     def mount(self, host: Union[str, Any]):
-        """
-        Mount the component under host (CSS selector or JS element).
-        If a 'selector' attribute is set on the class, you can mount by placing
-        a matching element in the DOM and passing that selector.
-        """
         if not HAS_JS:
             raise RuntimeError("Component.mount() requires a browser environment.")
-        # Resolve host element
         if isinstance(host, str):
             el = _document.querySelector(host)
             if not _is_dom_node(el):
@@ -283,12 +265,10 @@ class Component:
                 )
             self._host_js = host
 
-        # First render + bind
         self._render_and_mount(first_mount=True)
         return self
 
     def destroy(self):
-        """Unmount and cleanup."""
         if self._destroyed:
             return
         self._cleanup_bindings()
@@ -312,9 +292,6 @@ class Component:
 
     # ----- event + value bindings -------------------------------------------------
     def on(self, element: Element, event: str, handler: Callable[..., None]) -> Element:
-        """
-        Bind a DOM event to a Python callable. Use inside template() on a specific element.
-        """
         elem_id = self._ensure_elem_marker(element)
         self._event_bindings.append(_EventBinding(elem_id, event, handler))
         return element
@@ -327,14 +304,10 @@ class Component:
         event: str = "input",
         prop: str = "value",
     ) -> Element:
-        """
-        Two-way bind an input's value (or checked) to a Signal.
-        """
         elem_id = self._ensure_elem_marker(element)
         self._value_bindings.append(
             _ValueBinding(elem_id, signal, prop=prop, event=event)
         )
-        # Set initial value in template attributes for SSR-ish experience
         try:
             if prop == "checked":
                 element.set_attr(checked=bool(signal.get()))
@@ -346,18 +319,96 @@ class Component:
 
     # ----- child components (portals) --------------------------------------------
     def portal(self, child_component_cls: type, **child_props) -> Element:
-        """
-        Reserve a spot for a child component; it will be mounted after this component mounts.
-        """
         portal_id = next(_portal_id_iter)
-        placeholder = Division()  # <div data-sw-portal="..."></div>
+        placeholder = Division()
         placeholder.set_attr(**{"data-sw-portal": portal_id})
         self._portal_children.append((portal_id, child_component_cls, child_props))
         return placeholder
 
-    # alias
     def use(self, child_component_cls: type, **props) -> Element:
         return self.portal(child_component_cls, **props)
+
+    # ----- focus capture/restore --------------------------------------------------
+    def _is_within_root(self, el) -> bool:
+        try:
+            return (
+                _is_dom_node(el)
+                and _is_dom_node(self._root_js)
+                and self._root_js.contains(el)
+            )
+        except Exception:
+            return False
+
+    def _capture_focus_state(self) -> Optional[Dict[str, Any]]:
+        """
+        Capture active element id and selection (for text controls) so we can restore after re-render.
+        Only works for elements that carry a data-sw-id (created by on()/bind_value()).
+        """
+        if not HAS_JS or not _is_dom_node(self._root_js):
+            return None
+        try:
+            active = _document.activeElement
+        except Exception:
+            return None
+        if not self._is_within_root(active):
+            return None
+
+        try:
+            elem_id = active.getAttribute("data-sw-id")
+        except Exception:
+            elem_id = None
+        if not elem_id:
+            return None
+
+        # Try to capture caret/selection for inputs/textareas
+        sel_start = sel_end = None
+        sel_dir = None
+        try:
+            # Some elements (checkboxes, buttons) don't support these
+            sel_start = getattr(active, "selectionStart", None)
+            sel_end = getattr(active, "selectionEnd", None)
+            sel_dir = getattr(active, "selectionDirection", None)
+        except Exception:
+            pass
+
+        return {
+            "elem_id": elem_id,
+            "sel_start": sel_start,
+            "sel_end": sel_end,
+            "sel_dir": sel_dir,
+        }
+
+    def _restore_focus_state(self, state: Optional[Dict[str, Any]]) -> None:
+        if not state or not HAS_JS or not _is_dom_node(self._root_js):
+            return
+        elem_id = state.get("elem_id")
+        if not elem_id:
+            return
+        try:
+            el = self._root_js.querySelector(f'[data-sw-id="{elem_id}"]')
+        except Exception:
+            el = None
+        if not _is_dom_node(el):
+            return
+        try:
+            el.focus()
+        except Exception:
+            pass
+
+        # If we have selection info, restore it (text inputs / textarea)
+        sel_start = state.get("sel_start")
+        sel_end = state.get("sel_end")
+        sel_dir = state.get("sel_dir") or "none"
+        if sel_start is not None and sel_end is not None:
+            try:
+                if hasattr(el, "setSelectionRange"):
+                    el.setSelectionRange(sel_start, sel_end, sel_dir)
+                else:
+                    # Fallback assignment if supported
+                    setattr(el, "selectionStart", sel_start)
+                    setattr(el, "selectionEnd", sel_end)
+            except Exception:
+                pass
 
     # ----- internal: rendering + binding -----------------------------------------
     def _ensure_elem_marker(self, element: Element) -> str:
@@ -369,21 +420,14 @@ class Component:
         return new_id
 
     def _scope_css(self, css_text: str, scope_selector: str) -> str:
-        """
-        Naive CSS scoping: prefix simple selectors with [data-sw-cid="N"].
-        Leaves @rules, keyframes etc. untouched.
-        """
         scoped_lines: List[str] = []
-        # Extremely simple prefixing — good enough for demos (not a full parser).
         for line in css_text.splitlines():
             stripped = line.strip()
             if not stripped or stripped.startswith("@"):
                 scoped_lines.append(line)
                 continue
             if "{" in line:
-                # prefix selectors before '{' with scope
                 before, after = line.split("{", 1)
-                # multiple selectors separated by comma
                 selectors = [s.strip() for s in before.split(",")]
                 prefixed = ", ".join(f"{scope_selector} {s}" for s in selectors if s)
                 scoped_lines.append(f"{prefixed} {{{after}")
@@ -395,17 +439,14 @@ class Component:
         styles = self.styles()
         if not styles:
             return
-        # Get CSS text
         if isinstance(styles, Stylesheet):
             css_text = styles.to_css()
         else:
             css_text = str(styles)
-        # Optional scoping per component instance
         if self._use_scoped_styles:
             scope_selector = f'[data-sw-cid="{self._instance_id}"]'
             css_text = self._scope_css(css_text, scope_selector)
 
-        # Create or replace a <style> tag specific to this instance
         if HAS_JS:
             if self._style_el is None:
                 self._style_el = _document.createElement("style")
@@ -419,13 +460,12 @@ class Component:
                 "No host element resolved; call mount(selector_or_element) first."
             )
 
-        # Clean up old bindings/listeners and reset per-render lists
+        # CLEANUP & RESET PER-RENDER
         self._cleanup_bindings()
         self._event_bindings.clear()
         self._value_bindings.clear()
         self._portal_children.clear()
 
-        # Clear and re-subscribe to signal dependencies for this render
         for unsub in self._signal_unsubs:
             try:
                 unsub()
@@ -433,7 +473,10 @@ class Component:
                 pass
         self._signal_unsubs.clear()
 
-        # Build template collecting the signals used
+        # CAPTURE FOCUS BEFORE WE NUKE THE DOM
+        focus_state = self._capture_focus_state()
+
+        # BUILD TEMPLATE & COLLECT SIGNALS
         with DependencyCollector() as dep:
             try:
                 node = self.template()
@@ -444,20 +487,16 @@ class Component:
                     _console.error(f"template() error: {e}")
                 node = Fragment(f"SiteWinder template error: {e}")
 
-        # Subscribe to signals we depended on
         def _on_sig_change(old, new):
             self._schedule_rerender()
 
         for sig in dep.signals:
             self._signal_unsubs.append(sig.subscribe(_on_sig_change))
 
-        # Create a container for this component (so we can safely replace it on re-render)
+        # CREATE ROOT CONTAINER (FIRST MOUNT)
         container_attr_name = "data-sw-root"
         container_attr_val = f"root-{self._instance_id}"
-
-        # First mount: create container
         if first_mount:
-            # Clear host content but preserve the host node itself
             self._host_js.innerHTML = ""
             root = _document.createElement("div")
             root.setAttribute(container_attr_name, container_attr_val)
@@ -467,24 +506,23 @@ class Component:
             self._host_js.appendChild(root)
             self._root_js = root
 
-        # (Re)mount styles
+        # (RE)MOUNT STYLES
         self._mount_styles_if_any(first_mount)
 
-        # (Re)render: wipe container and append
+        # (RE)RENDER DOM
         if _is_dom_node(self._root_js):
             self._root_js.innerHTML = ""
             node.to_dom(self._root_js)
 
-        # Attach event listeners
+        # BINDINGS
         self._apply_event_bindings()
-
-        # Apply value bindings (two-way)
         self._apply_value_bindings()
-
-        # Mount child components at portals
         self._mount_portal_children()
 
-        # Lifecycle callback
+        # RESTORE FOCUS AFTER DOM & BINDINGS
+        self._restore_focus_state(focus_state)
+
+        # LIFECYCLE
         if not self._mounted:
             self._mounted = True
             try:
@@ -511,7 +549,6 @@ class Component:
         _schedule_microtask(run)
 
     def _apply_event_bindings(self):
-        # Detach previous listeners (if any)
         for eb in self._event_bindings:
             if eb.attached_to and eb.proxy:
                 try:
@@ -521,18 +558,16 @@ class Component:
             eb.attached_to = None
             eb.proxy = None
 
-        # Attach fresh listeners for this render
         for eb in self._event_bindings:
             el = self._root_js.querySelector(f'[data-sw-id="{eb.elem_id}"]')
             if not _is_dom_node(el):
-                continue  # element not in DOM (e.g., conditionals), skip safely
+                continue
             proxy = _create_proxy(lambda ev, _h=eb.handler: _h(ev))
             el.addEventListener(eb.event, proxy)
             eb.attached_to = el
             eb.proxy = proxy
 
     def _apply_value_bindings(self):
-        # Detach previous listeners
         for vb in self._value_bindings:
             if vb.attached_to and vb.proxy:
                 try:
@@ -542,13 +577,11 @@ class Component:
             vb.attached_to = None
             vb.proxy = None
 
-        # Attach for this render
         for vb in self._value_bindings:
             el = self._root_js.querySelector(f'[data-sw-id="{vb.elem_id}"]')
             if not _is_dom_node(el):
                 continue
 
-            # initialize DOM from signal
             try:
                 setattr(el, vb.prop, vb.signal.get())
             except Exception:
@@ -575,7 +608,6 @@ class Component:
 
             vb.attached_to = el
             vb.proxy = proxy
-            # store unsub so we detach on destroy
             self._signal_unsubs.append(unsub)
 
     def _mount_portal_children(self):
@@ -669,20 +701,17 @@ class Router:
         if factory is None and self.not_found_factory is not None:
             factory = self.not_found_factory
         if factory is None:
-            # attempt match without trailing slash
             if h.endswith("/") and (h[:-1] in self.routes):
                 factory = self.routes[h[:-1]]
         if factory is None and "#/" in self.routes:
             factory = self.routes["#/"]
 
         if factory is None:
-            # Nothing to show
             if self._current:
                 self._current.destroy()
                 self._current = None
             return
 
-        # Replace current component
         if self._current:
             self._current.destroy()
             self._current = None
