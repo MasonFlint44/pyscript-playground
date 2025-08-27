@@ -569,8 +569,8 @@ class App(Component):
                     "--btn-bg": "#ffffff",
                     "--accent": "#7c3aed",
                     "--link": "#2563eb",
-                    "--nav-grad-start": "#7c3aed",
-                    "--nav-grad-end": "#06b6d4",
+                    "--nav-grad-start": "#06b6d4",
+                    "--nav-grad-end": "#7c3aed",
                     "--brand-on-grad": "#ffffff",
                 },
             )
@@ -588,8 +588,8 @@ class App(Component):
                     "--btn-bg": "#0b1220",
                     "--accent": "#7c3aed",
                     "--link": "#93c5fd",
-                    "--nav-grad-start": "#0ea5e9",
-                    "--nav-grad-end": "#7c3aed",
+                    "--nav-grad-start": "#7c3aed",
+                    "--nav-grad-end": "#0ea5e9",
                     "--brand-on-grad": "#ffffff",
                 },
             )
