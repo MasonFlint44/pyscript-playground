@@ -1,4 +1,4 @@
 name = "PyScript Playground"
 
 [files]
-"./pyscript_html.py" = "./pyhtml5.py"
+"./pyhtml5.py" = ""
