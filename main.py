@@ -28,8 +28,7 @@ class Card(Component):
     """Reusable card with title + body content (callable)."""
 
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             # Use theme tokens so scoped CSS works in light/dark
             css.rule(
                 ".card",
@@ -51,8 +50,7 @@ class Card(Component):
     def template(self):
         title = self.props.get("title", "")
         body = self.props.get("body")
-        root = Division().classes("card")
-        with root:
+        with Division().classes("card") as root:
             if title:
                 Span(title).classes("title")
             if callable(body):
@@ -65,8 +63,7 @@ class Card(Component):
 
 class Home(Component):
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             css.rule(".home", padding="24px")
             css.rule(
                 ".hero",
@@ -80,8 +77,7 @@ class Home(Component):
         return css
 
     def template(self):
-        root = Division().classes("home")
-        with root:
+        with Division().classes("home") as root:
             # Snake emoji requested here, on the Home page
             Heading1("🐍 SiteWinder")
             Paragraph(
@@ -115,8 +111,7 @@ class Home(Component):
 
 class Counter(Component):
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             css.rule(".wrap", padding="24px")
             css.rule(".row", display="flex", gap="8px", align_items="center")
             css.rule(
@@ -158,8 +153,7 @@ class Counter(Component):
         self.step = Signal(1)
 
     def _controls(self, label: str, sig: Signal):
-        row = Division().classes("row")
-        with row:
+        with Division().classes("row") as row:
             Paragraph(label)
             dec = Button("−").classes("btn")
             self.on(dec, "click", lambda e, s=sig: s.set(s() - self.step()))
@@ -169,8 +163,7 @@ class Counter(Component):
 
     def template(self):
         total = self.count_a() + self.count_b()
-        root = Division().classes("wrap")
-        with root:
+        with Division().classes("wrap") as root:
             Heading1("🔢 Counter Playground")
             Paragraph("Signals, events, two counters, and a computed total.")
             with Division().classes("row"):
@@ -183,8 +176,7 @@ class Counter(Component):
             self._controls("Counter A:", self.count_a)
             self._controls("Counter B:", self.count_b)
             HorizontalRule().style(margin="12px 0")
-            p = Paragraph()
-            with p:
+            with Paragraph() as p:
                 Span("Total: ").classes("pill")
                 Span(str(total))
         return root
@@ -192,8 +184,7 @@ class Counter(Component):
 
 class FormDemo(Component):
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             css.rule(
                 ".wrap", padding="24px", display="grid", gap="14px", max_width="560px"
             )
@@ -223,8 +214,7 @@ class FormDemo(Component):
         self.color = Signal("violet")
 
     def template(self):
-        root = Division().classes("wrap")
-        with root:
+        with Division().classes("wrap") as root:
             Heading1("📝 Form Binding")
             with Division().classes("row"):
                 Label("Name")
@@ -238,8 +228,7 @@ class FormDemo(Component):
                 )
             with Division().classes("row"):
                 Label("Favorite color")
-                sel = Select()
-                with sel:
+                with Select() as sel:
                     for c in ["slate", "violet", "rose", "emerald", "amber"]:
                         Option(c, value=c)
                 self.bind_value(sel, self.color, event="change", prop="value")
@@ -256,8 +245,7 @@ class Todos(Component):
     """Todos list where structure mutations cause re-renders (list wrapped in a Signal)."""
 
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             css.rule(
                 ".wrap", padding="24px", display="grid", gap="12px", max_width="720px"
             )
@@ -317,8 +305,7 @@ class Todos(Component):
 
     def template(self):
         items = self.todos()
-        root = Division().classes("wrap")
-        with root:
+        with Division().classes("wrap") as root:
             Heading1("✅ Todos & Modal")
             with Division().classes("controls"):
                 inp = Input(type="text", placeholder="What’s next?")
@@ -332,8 +319,7 @@ class Todos(Component):
                 Paragraph("No todos yet. Add one above! ✨").classes("empty")
             else:
                 for i, item in enumerate(items):
-                    row = Division().classes("todo")
-                    with row:
+                    with Division().classes("todo") as row:
                         chk = Input(type="checkbox")
                         self.bind_value(
                             chk, item["done"], event="change", prop="checked"
@@ -346,8 +332,7 @@ class Todos(Component):
             # Inline modal (simple)
             class Modal(Component):
                 def styles(self):
-                    css = Stylesheet()
-                    with css:
+                    with Stylesheet() as css:
                         css.rule(
                             ".backdrop",
                             position="fixed",
@@ -390,27 +375,29 @@ class Todos(Component):
                 def template(self):
                     if not self.open_signal():
                         return Division()
-                    root = Division().classes("backdrop")
-                    self.on(
-                        root,
-                        "click",
-                        lambda ev: (
-                            self.open_signal.set(False) if ev.target is root else None
-                        ),
-                    )
-                    self.on(
-                        root,
-                        "keydown",
-                        lambda ev: (
-                            self.open_signal.set(False)
-                            if getattr(ev, "key", "") == "Escape"
-                            else None
-                        ),
-                    )
-                    root.set_attr(tabindex="0")
-                    with root:
-                        panel = Division().classes("panel")
-                        with panel:
+                    with Division().classes("backdrop") as root:
+                        # Close on backdrop click
+                        self.on(
+                            root,
+                            "click",
+                            lambda ev: (
+                                self.open_signal.set(False)
+                                if ev.target is root
+                                else None
+                            ),
+                        )
+                        # Close on Escape
+                        self.on(
+                            root,
+                            "keydown",
+                            lambda ev: (
+                                self.open_signal.set(False)
+                                if getattr(ev, "key", "") == "Escape"
+                                else None
+                            ),
+                        )
+                        root.set_attr(tabindex="0")
+                        with Division().classes("panel") as panel:
                             Heading2("🎉 Hello from Modal")
                             Paragraph("This modal is controlled by a Signal.")
                             with Division().classes("actions"):
@@ -435,8 +422,7 @@ class Navbar(Component):
     """Sticky top bar with links + light/dark toggle (persists in localStorage)."""
 
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             # Gradient uses tokens for easy theme swap
             css.rule(
                 ".bar",
@@ -511,10 +497,8 @@ class Navbar(Component):
         )
 
     def template(self):
-        root = Division().classes("bar")
-        with root:
-            inner = Division().classes("inner")
-            with inner:
+        with Division().classes("bar") as root:
+            with Division().classes("inner") as inner:
                 Span("🐍 SiteWinder").classes("brand")
                 with Division().classes("nav"):
                     self._link("#/", "Home")
@@ -538,8 +522,7 @@ class App(Component):
     """App shell: global styles & tokens, Inter font loader, theme handling, navbar + outlet."""
 
     def styles(self):
-        css = Stylesheet()
-        with css:
+        with Stylesheet() as css:
             # Global font & base layout
             css.rule(
                 "html, body, input, button, select, textarea",
@@ -640,8 +623,7 @@ class App(Component):
             self._theme_unsub = None
 
     def template(self):
-        root = Division()
-        with root:
+        with Division() as root:
             self.portal(Navbar, theme=self.theme)
             Division(id="outlet").classes("container").style(
                 padding_top="16px", padding_bottom="24px"
