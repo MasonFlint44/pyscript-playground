@@ -78,7 +78,6 @@ class Home(Component):
 
     def template(self):
         with Division().classes("home") as root:
-            # Snake emoji requested here, on the Home page
             Heading1("🐍 SiteWinder")
             Paragraph(
                 "Angular-like components in pure Python with PyScript + pyhtml5."

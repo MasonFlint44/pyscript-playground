@@ -1,0 +1,27 @@
+version = 1
+revision = 3
+requires-python = ">=3.12"
+
+[[package]]
+name = "pyhtml5"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/83/7896a44c60a1827730cb6778f75b3334978d7a08604a93b2786f18b7e80a/pyhtml5-0.0.5.tar.gz", hash = "sha256:445d113f5726d6c4e8125b919f153d46a2341256e48adf21239411b8ba694a44", size = 11629, upload-time = "2025-08-30T00:21:04.122Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/06/21a04a48e49bc6ff2117fde0c10cc462f582536cd71ad2fdc723d3a4f0da/pyhtml5-0.0.5-py3-none-any.whl", hash = "sha256:6d2b4890259aa046048f12af843097e8d7a2fd874269276aadaefb2a084806a3", size = 13434, upload-time = "2025-08-30T00:21:03.112Z" },
+]
+
+[[package]]
+name = "pyscript-playground"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyhtml5" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pyhtml5", specifier = ">=0.0.5" }]
