@@ -1,7 +1,5 @@
 name = "PyScript Playground"
 packages = [
     "pyhtml5",
+    "sitewinder",
 ]
-
-[files]
-"./sitewinder.py" = ""
